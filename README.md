@@ -25,3 +25,5 @@ Utilizamos el siguiente código para capturar la señal en tiempo real y guardar
 import nidaqmx
 from nidaqmx.constants import AcquisitionType
 import numpy as np
+```
+En este apartado llamamos e importamos las diferentes librerias con las que vamos trabaja, en este caso nidaqx para interactuar con el hardware de adquisició NI DAQ,, por otro
