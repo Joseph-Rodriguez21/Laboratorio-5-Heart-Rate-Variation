@@ -21,6 +21,7 @@ Fig. 2 Imagen ilustrativa montaje.
 Ahora, ya elegido el sujeto de prueba realizamos la captura de la señal electrocardiográfica durante 5 minutos, al principio en reposo y luego exaltado, para capturar y análizar.
 Utilizamos el siguiente código para capturar la señal en tiempo real y guardar los datos en un archivo .txt para realizar su correspondiente filtro y análisis.
 
+```python 
 import nidaqmx
 from nidaqmx.constants import AcquisitionType
 import numpy as np
