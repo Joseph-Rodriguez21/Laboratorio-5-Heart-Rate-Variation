@@ -26,4 +26,45 @@ import nidaqmx
 from nidaqmx.constants import AcquisitionType
 import numpy as np
 ```
-En este apartado llamamos e importamos las diferentes librerias con las que vamos trabaja, en este caso nidaqx para interactuar con el hardware de adquisició NI DAQ,, por otro
+En este apartado llamamos e importamos las diferentes librerias con las que vamos trabaja, en este caso nidaqx para interactuar con el hardware de adquisició NI DAQ, por otro
+lado importamos para definir el tipo de adquisición (finita, continua, etc) y por último para manejar operaciones numéricas, en este caso como crear el eje de tiempo.
+
+```python
+# Parámetros de adquisición 
+sample_rate = 1000        # Frecuencia de muestreo en Hz
+duration_minutes = 5  # Duración de la adquisición en minutos
+duration_seconds = duration_minutes * 60 # Duración en segundos
+num_samples = int(sample_rate * duration_seconds) # Número total de muestras
+```
+Se definen la frecuencia de muestreo (1000 Hz) y la duración de la adquisición (5 minutos). A partir de estos datos, se calcula el número total de muestras necesarias para capturar la señal sin pérdida de información.
+
+```python
+with nidaqmx.Task() as task:
+    # Configuramos canal a utilizar
+    task.ai_channels.add_ai_voltage_chan("Dev3/ai0")
+    
+    # Adquisición finita de muestras
+    task.timing.cfg_samp_clk_timing(
+        sample_rate,
+        sample_mode=AcquisitionType.FINITE,
+        samps_per_chan=num_samples
+    
+    )
+```
+Dentro de un bloque with, se crea una tarea DAQ para garantizar que se inicie y cierre correctamente. Se configura el canal analógico de entrada (Dev3/ai0) y se define una adquisición finita del número exacto de muestras con el temporizador interno.
+```python
+    task.start()
+    task.wait_until_done(timeout=duration_seconds + 10)
+    data = task.read(number_of_samples_per_channel = num_samples)
+```
+Una vez finalizada la captura, los datos se leen en un arreglo. Se crea un eje de tiempo paralelo usando numpy.linspace que representa cada instante de muestra, desde 0 hasta el final de la adquisición.
+
+```python
+# Crear un eje de tiempo para la gráfica
+time_axis = np.linspace(0, duration_seconds, num_samples, endpoint=False)
+with open("datos_señal1.txt", "w") as archivo_txt:
+    archivo_txt.write("Tiempo (s)\tVoltaje (V)\n")
+    for t, v in zip(time_axis, data):
+        archivo_txt.write(f"{t:.6f}\t{v:.6f}\n")
+```
+Finalmente, los datos de tiempo y voltaje se guardan en un archivo .txt, separados por tabulaciones y con encabezado, listos para ser graficados en el siguiente apartado.
