@@ -81,3 +81,78 @@ from scipy.fftpack import fft, fftfreq
 from scipy.stats import ttest_ind
 from scipy.stats import ttest_ind, norm
 ```
+Se importan librerías para: Procesamiento numérico (numpy), Gráficas (matplotlib), Filtros y análisis de frecuencia (scipy.signal, fft)
+
+```python
+# Cargamos los datos del archivo capturados y guardados anteriormente
+señal_EMG = np.loadtxt("datos_señaljoseph.txt", skiprows = 1)
+tiempo = señal_EMG[:, 0]
+voltaje = señal_EMG[:, 1]
+```
+Primero se importa la señal desde el archivo datos_señaljoseph.txt, que contiene dos columnas: el tiempo en segundos y el voltaje de la señal en voltios. Para ello, se utiliza numpy.loadtxt con skiprows=1, que omite la primera fila del archivo (el encabezado con los nombres de las columnas). Luego, se separan los datos en dos arreglos: tiempo, que representa los puntos temporales, y voltaje, que corresponde a las amplitudes registradas de la señal ECG.
+
+```python
+fs = 1000
+duracion2=len(voltaje)/fs
+print("duracion de la señal", duracion2)
+fs = 1000 # Frecuencia de muestreo (Hz)
+lowcout = 20 # Frecuencia mínima de corte (Hz)
+highcut = 1000 # Frecuencia máxima de corte (Hz)
+```
+Una vez cargados los datos, se define la frecuencia de muestreo como fs = 1000 Hz, que es adecuada para señales ECG, ya que permite capturar adecuadamente componentes hasta los 100 Hz sin aliasing. Se establecen también las frecuencias de corte del filtro: una frecuencia mínima (lowcut = 20 Hz) que elimina componentes de muy baja frecuencia como artefactos de movimiento o tendencia basal, y una frecuencia máxima (highcut = 100 Hz) que elimina el ruido de alta frecuencia como interferencias eléctricas. El orden del filtro se define como 4, lo que garantiza una buena pendiente de atenuación sin hacer el sistema demasiado sensible a pequeñas variaciones.
+
+```python
+# === Función para diseñar y aplicar el filtro pasa banda ===
+def butter_bandpass_filter(data, lowcut, highcut, fs, order=4):
+    nyq = 0.5 * fs  # Frecuencia de Nyquist
+    low = lowcut / nyq
+    high = highcut / nyq
+    b, a = butter(order, [low, high], btype='band')
+    y = filtfilt(b, a, data)
+    return y
+
+# === Aplicar el filtro a la señal ===
+voltaje_filtrado = butter_bandpass_filter(voltaje, lowcut, highcut, fs, order)
+```
+La función butter_bandpass_filter es responsable de diseñar y aplicar el filtro pasa banda. Dentro de esta función, primero se calcula la frecuencia de Nyquist, que es la mitad de la frecuencia de muestreo y representa el límite superior que puede ser representado correctamente en una señal digital. Luego, se normalizan las frecuencias de corte dividiéndolas por la frecuencia de Nyquist. Con estos valores, se utiliza la función butter de scipy.signal para obtener los coeficientes del filtro Butterworth. Finalmente, se aplica el filtro con la función filtfilt, que filtra la señal en ambas direcciones (adelante y atrás), lo que tiene la ventaja de no introducir desfase en la señal, una propiedad fundamental cuando se requiere precisión temporal como en el caso del ECG.
+
+```python
+plt.figure(figsize=(20, 5))
+plt.plot(tiempo, voltaje, label="Señal ECG", color='red')
+plt.xlabel("Tiempo (s)")
+plt.ylabel("Voltaje (v)")
+plt.title("Señal ECG")
+plt.xlim(0,120)
+plt.grid(True)
+plt.legend()
+plt.show()
+
+plt.figure(figsize=(20, 5))
+plt.plot(tiempo, voltaje, label="Señal ECG", color='red')
+plt.xlabel("Tiempo (s)")
+plt.ylabel("Voltaje (v)")
+plt.title("Señal ECG")
+plt.xlim(0,5)
+plt.grid(True)
+plt.legend()
+plt.show()
+
+plt.figure(figsize=(20, 5))
+plt.plot(tiempo, voltaje, label="Señal ECG", color='red')
+plt.xlabel("Tiempo (s)")
+plt.ylabel("Voltaje (v)")
+plt.title("Señal ECG")
+plt.xlim(115,120)
+plt.grid(True)
+plt.legend()
+plt.show()
+```
+Después de aplicar el filtro, se generan tres gráficas con matplotlib para observar el comportamiento de la señal:
+
+Gráfica completa (0 a 120 s): Permite observar la señal a lo largo de toda su duración, útil para detectar cambios globales, artefactos o eventos cardíacos atípicos a lo largo del tiempo.
+
+Zoom en los primeros 5 segundos: Ayuda a visualizar con más detalle la morfología de las ondas del ECG, como los complejos P-QRS-T, que se presentan de forma cíclica.
+
+Zoom en los últimos 5 segundos: Similar a la anterior, pero muestra los instantes finales de la adquisición, lo cual es útil para comparar si la señal se mantiene estable en el tiempo.
+
+Cada gráfica está debidamente etiquetada con títulos, ejes y leyendas, y se le aplica una cuadrícula para facilitar la lectura de valores.
