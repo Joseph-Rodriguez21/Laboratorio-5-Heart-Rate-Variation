@@ -68,3 +68,16 @@ with open("datos_señal1.txt", "w") as archivo_txt:
         archivo_txt.write(f"{t:.6f}\t{v:.6f}\n")
 ```
 Finalmente, los datos de tiempo y voltaje se guardan en un archivo .txt, separados por tabulaciones y con encabezado, listos para ser graficados en el siguiente apartado.
+
+Ahora ya teniendo listo el código para el filtrado y la adquisición de datos, procedemos a utilizar el siguiente código para gráficar los datos filtrados obtenidos anteriormente, de tal manera podemos identificar de manera clara los diferentes intervalos y picos. Mediante este código gráficamos toda la señal y luego más a fondo al principio en reposo y luego en excitación. Con esto podemos analizar el comportamiento de los picos y sus diferencias. 
+
+```python
+import numpy as np
+import matplotlib.pyplot as plt
+from scipy.signal import butter, lfilter
+import nidaqmx
+from scipy.signal import butter, filtfilt, windows
+from scipy.fftpack import fft, fftfreq
+from scipy.stats import ttest_ind
+from scipy.stats import ttest_ind, norm
+```
