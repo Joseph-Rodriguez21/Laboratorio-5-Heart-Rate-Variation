@@ -156,3 +156,5 @@ Zoom en los primeros 5 segundos: Ayuda a visualizar con más detalle la morfolog
 Zoom en los últimos 5 segundos: Similar a la anterior, pero muestra los instantes finales de la adquisición, lo cual es útil para comparar si la señal se mantiene estable en el tiempo.
 
 Cada gráfica está debidamente etiquetada con títulos, ejes y leyendas, y se le aplica una cuadrícula para facilitar la lectura de valores.
+
+d. Análisis de la HRV en el dominio del tiempo 
