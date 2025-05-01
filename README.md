@@ -157,4 +157,153 @@ Zoom en los últimos 5 segundos: Similar a la anterior, pero muestra los instant
 
 Cada gráfica está debidamente etiquetada con títulos, ejes y leyendas, y se le aplica una cuadrícula para facilitar la lectura de valores.
 
-d. Análisis de la HRV en el dominio del tiempo 
+```python
+
+inicio = 0
+fin = 5
+mask = (tiempo >= inicio) & (tiempo <= fin)
+tiempo_5s = tiempo[mask]
+voltaje_5s = voltaje[mask]
+
+# Filtro pasa banda 0.5–40 Hz
+def butter_bandpass_filter(data, lowcut=0.5, highcut=40, fs=1000, order=4):
+    nyq = 0.5 * fs
+    low = lowcut / nyq
+    high = highcut / nyq
+    b, a = butter(order, [low, high], btype='band')
+    y = filtfilt(b, a, data)
+    return y
+
+ecg_filtrada_5s = butter_bandpass_filter(voltaje_5s)
+
+# Detección de picos R
+peaks_5s, _ = find_peaks(ecg_filtrada_5s, distance=int(0.6 * fs), height=np.mean(ecg_filtrada_5s))
+
+# Graficar ECG filtrada + picos
+plt.figure(figsize=(15, 4))
+plt.plot(tiempo_5s, ecg_filtrada_5s, label="ECG filtrada (0–5 s)")
+plt.plot(tiempo_5s[peaks_5s], ecg_filtrada_5s[peaks_5s], "ro", label="Picos R")
+plt.title("Detección de Picos R en ECG (0–5 segundos)")
+plt.xlabel("Tiempo (s)")
+plt.ylabel("Amplitud")
+plt.legend()
+plt.grid()
+plt.show()
+```
+
+Análisis de la HRV en el dominio del tiempo
+```python
+# Análisis HRV en dominio del tiempo
+
+media_rr = np.mean(rr_intervals_5s)
+std_rr = np.std(rr_intervals_5s)
+
+print(f"Media R-R (0–5 s): {media_rr:.3f} s")
+print(f"Desviación estándar R-R (0–5 s): {std_rr:.3f} s")
+if media_rr > 1:
+    interpretacion = "frecuencia cardíaca baja (bradicardia o reposo profundo)"
+elif media_rr < 0.6:
+    interpretacion = "frecuencia cardíaca alta (posible estrés, ejercicio o error)"
+else:
+    interpretacion = "frecuencia cardíaca normal en reposo"
+print("Interpretación fisiológica:", interpretacion)
+```
+Este bloque calcula la media y variabilidad de los intervalos entre latidos (R-R), lo cual permite evaluar el estado del sistema nervioso autónomo obteniendo asi Interpreta automáticamente el valor de la media R–R donde 
+
+-1 s - ritmo lento - posible bradicardia.
+
+
+-0.6 s - ritmo acelerado - posible estrés o ejercicio.
+
+
+Entre 0.6 y 1 s - frecuencia cardíaca normal.
+
+
+obteniendo :
+
+Media R-R (0–5 s): 0.943 s
+
+
+Desviación estándar R-R (0–5 s): 0.072 s
+
+
+Interpretación fisiológica: frecuencia cardíaca normal en reposo
+
+
+e. Aplicación de transformada Wavelet
+
+```Python
+wavelet = 'cmor1.5-1.0'  # Wavelet compleja Morlet
+scales = np.arange(1, 512)
+coef, freqs = pywt.cwt(ecg_filtrada_5s, scales, wavelet, sampling_period=1/fs)
+rr_intervals = rr_intervals_5s
+rr_times = tiempo_5s[peaks_5s][1:]
+
+# configurar RR a frecuencia constante (para CWT)
+fs_interp = 4  # Frecuencia de muestreo de interpolación
+tiempo_uniforme = np.linspace(rr_times[0], rr_times[-1], int((rr_times[-1] - rr_times[0]) * fs_interp))
+f_interp = interp1d(rr_times, rr_intervals, kind='cubic', fill_value='extrapolate')
+rr_interp = f_interp(tiempo_uniforme)
+
+# Transformada Wavelet Continua
+wavelet = 'cmor1.5-1.0'
+scales = np.arange(1, 512)
+coef, freqs = pywt.cwt(rr_interp, scales, wavelet, sampling_period=1/fs_interp)
+power = np.abs(coef)**2
+
+# Graficar espectrograma
+plt.figure(figsize=(12, 6))
+plt.imshow(power, extent=[tiempo_uniforme[0], tiempo_uniforme[-1], freqs[-1], freqs[0]],
+           cmap='plasma', aspect='auto', origin='lower')
+plt.colorbar(label='Potencia Wavelet |W(t, f)|²')
+
+plt.axhspan(0.04, 0.15, color='cyan', alpha=0.5, label='LF (0.04–0.15 Hz)')
+plt.axhspan(0.15, 0.4, color='lightgreen', alpha=0.5, label='HF (0.15–0.4 Hz)')
+
+plt.axhline(0.04, color='white', linestyle='--', linewidth=1)
+plt.axhline(0.15, color='white', linestyle='--', linewidth=1)
+plt.axhline(0.4, color='white', linestyle='--', linewidth=1)
+
+plt.xlabel("Tiempo (s)")
+plt.ylabel("Frecuencia (Hz)")
+plt.title("Espectrograma Wavelet (CWT) de la Serie R-R\n(Wavelet: cmor1.5-1.0)")
+plt.ylim(0, 0.5)
+plt.legend(loc='upper right')
+plt.grid(True)
+plt.tight_layout()
+plt.show()
+```
+
+Se aplica una Transformada Wavelet Continua a la serie R–R obtenida, permitiendo visualizar cómo varía la actividad del sistema nervioso autónomo en el tiempo y en distintas bandas de frecuencia luego se realiza una i adaptacion a la señal R–R a una frecuencia uniforme y luego se obtiene el espectrograma que muestra la potencia de la señal HRV en las bandas de interés (LF y HF) en donde:
+
+
+Las frecuencias bajas (LF) entre 0.04 y 0.15 Hz están asociadas a una combinación de actividad simpática y parasimpática
+
+
+Las frecuencias altas (HF) entre 0.15 y 0.4 Hz reflejan principalmente la actividad parasimpática (vagal), relacionada con la respiración
+
+RESULTADOS:
+
+
+- SEÑAL ECG
+
+
+![image](https://github.com/user-attachments/assets/c25bba38-dfb5-4e9a-9ab3-212cf31aafca)
+
+
+-SEÑAL ECG(RANGO DE TIEMPO)
+
+
+![image](https://github.com/user-attachments/assets/e33a8597-ac88-47f0-82bd-6206841cb2f3)
+
+
+- SEÑAL FILTRADA CON SU DETECCION DE PICOS R-R
+
+
+![image](https://github.com/user-attachments/assets/acb11eb4-8689-44bd-8190-9ede069d38c0)
+
+
+- ESPECTOGRAMA WAVELET(CTW)
+
+
+![image](https://github.com/user-attachments/assets/0a8a5491-c82b-4d25-8f14-457bb4d844f9)
